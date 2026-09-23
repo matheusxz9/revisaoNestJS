@@ -32,6 +32,14 @@ export class UsuariosService {
       papel: 'solicitante',
       ativo: true,
     },
+    {
+      id: 3,
+      nome: 'Marcelo Silva',
+      email: 'marcelo@empresa.com',
+      senhaHash: '$2b$12$DJnB5VtBCX4.W24cPqlQDuCvFTjcjaau6NMur0QBEj.oWzecCiz0m',
+      papel: 'auditor',
+      ativo: true
+    },
   ];
 
   buscarPorEmail(email: string) {

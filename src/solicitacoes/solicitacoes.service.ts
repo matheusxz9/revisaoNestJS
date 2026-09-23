@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FiltrarSolicitacoesDto } from './dto/filtrar-solicitacoes.dto';
 import { DataSource } from 'typeorm';
 import { Auditoria } from '../auditoria/auditoria.entity';
+import { CentroCusto } from '../centros-custo/centro-custo.entity';
+import { AprovarSolicitacaoDto } from './dto/aprovar-solicitacao.dto';
 
 @Injectable()
 export class SolicitacoesService {
@@ -51,12 +53,13 @@ export class SolicitacoesService {
       titulo: dto.titulo,
       centroCusto: dto.centroCusto,
       prioridade: dto.prioridade,
+      valorEstimado: String(dto.valorEstimado),
       status: 'pendente',
     });
     return this.repository.save(solicitacao);
   }
 
-  async aprovar(id: number, versaoEsperada: number, atorId: number) {
+  async aprovar(id: number, dto: AprovarSolicitacaoDto, atorId: number) {
     return this.dataSource.transaction(async (manager) => {
       const solicitacao = await manager.findOneBy(Solicitacao, { id });
 
@@ -68,11 +71,47 @@ export class SolicitacoesService {
         throw new ConflictException("Solicitação não está pendente");
       }
 
+      if(solicitacao.versao !== dto.versao) {
+        throw new ConflictException(
+          'Versão da solicitação desatualizada; consulte novamente',
+        );
+      }
+
+      const centro = await manager.findOneBy(CentroCusto, {
+        codigo: solicitacao.centroCusto,
+      });
+
+      if(!centro) {
+        throw new NotFoundException("Centro de custo não encontrado");
+      }
+
+      if(centro.versao !== dto.versaoCentroCusto) {
+        throw new ConflictException(
+          'Versão do centro de custo desatualizada; consulte novamente',
+        );
+      }
+
+      const saldoAnterior = centro.saldo;
+
+      const desconto = await manager
+      .createQueryBuilder()
+      .update(CentroCusto)
+      .set({ saldo: () => 'saldo - :valor', versao: () => 'versao + 1'})
+      .where('codigo = :codigo', { codigo: centro.codigo })
+      .andWhere('versao = :versao', { versao: dto.versaoCentroCusto })
+      .andWhere('saldo >= :valor', { valor: solicitacao.valorEstimado })
+      .execute();
+
+      if(desconto.affected !== 1) {
+        throw new ConflictException('Saldo insuficiente no centro de custo');
+      }
+
       const resultado = await manager
       .createQueryBuilder()
       .update(Solicitacao)
       .set({ status: 'aprovada', versao: () => 'versao + 1'})
       .where('id = :id', { id })
+      .andWhere('versao = :versao', { versao: dto.versao })
       .andWhere('status = :status', { status: 'pendente' })
       .execute();
 
@@ -82,19 +121,29 @@ export class SolicitacoesService {
         );
       }
 
+      const centroDepois = await manager.findOneByOrFail(CentroCusto, {
+        codigo: centro.codigo,
+      });
+
       await manager.insert(Auditoria, {
         atorId,
         acao: 'SOLICITACAO_APROVADA',
-        recursoTipo: 'solicitante',
+        recursoTipo: 'solicitacao',
         recursoId: id,
         detalhes: {
-          statusAnterior: 'pendete',
-          statusAtual: 'aprovada',
-          versaoAnterior: versaoEsperada,
+          centroCusto: centro.codigo,
+          valorReservado: solicitacao.valorEstimado,
+          saldoAnterior,
+          saldoResultante: centroDepois.saldo,
+          versaoSolicitacao: dto.versao,
+          versaoCentroCusto: dto.versaoCentroCusto,
         },
       });
 
-      return manager.findOneByOrFail(Solicitacao, { id });
+      return {
+        solicitacao: await manager.findOneByOrFail(Solicitacao, { id }),
+        centroCusto: centroDepois,
+      };
     })
   }
 }

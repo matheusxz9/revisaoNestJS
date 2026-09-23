@@ -5,11 +5,12 @@ import { SolicitacoesService } from './solicitacoes.service';
 import { Solicitacao } from './solicitacao.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Auditoria } from '../auditoria/auditoria.entity';
+import { CentroCusto } from '../centros-custo/centro-custo.entity';
 
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([Solicitacao, Auditoria]),
+    TypeOrmModule.forFeature([Solicitacao, Auditoria, CentroCusto]),
   ],
   controllers: [SolicitacoesController],
   providers: [SolicitacoesService],

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { SolicitacoesModule } from './solicitacoes/solicitacoes.module';
+import { CentrosCustoModule } from './centros-custo/centros-custo.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -24,6 +25,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     }),
     AuthModule,
     SolicitacoesModule,
+    CentrosCustoModule,
   ],
 })
 export class AppModule { }

@@ -41,6 +41,6 @@ export class SolicitacoesController {
     @Body() dto: AprovarSolicitacaoDto,
     @Req() request: RequisicaoAutenticada,
   ) {
-    return this.solicitacoesService.aprovar(id, dto.versao, request.user.id);
+    return this.solicitacoesService.aprovar(id, dto, request.user.id);
   }
 }

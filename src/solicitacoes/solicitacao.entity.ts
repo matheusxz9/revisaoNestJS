@@ -21,6 +21,9 @@ export class Solicitacao {
   @Column({ name: 'centro_custo', type: 'varchar', length: 30 })
   centroCusto: string;
 
+  @Column({ name: 'valor_estimado', type: 'numeric', precision: 12, scale: 2, default: 0 })
+  valorEstimado: string;
+
   @Column({ type: 'varchar', length: 10, default: 'normal' })
   prioridade: PrioridadeSolicitacao;
 
